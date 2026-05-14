@@ -25,8 +25,8 @@
 
 # https://www.slproweb.com/products/Win32OpenSSL.html
 
-set(OPENSSL_EXPECTED_VERSION "1.0")
-set(OPENSSL_MAX_VERSION "1.2")
+set(OPENSSL_EXPECTED_VERSION "3.0")
+set(OPENSSL_MAX_VERSION "4.0")
 
 macro(_OpenSSL_test_and_find_dependencies ssl_library crypto_library)
   if((CMAKE_SYSTEM_NAME STREQUAL "Linux") AND
