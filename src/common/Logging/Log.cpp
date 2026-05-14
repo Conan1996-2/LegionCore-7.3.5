@@ -63,7 +63,8 @@ Log* Log::instance(boost::asio::io_service* ioService)
     if (ioService != nullptr)
     {
         instance._ioService = ioService;
-        instance._strand = new boost::asio::strand(*ioService);
+        instance._strand = new boost::asio::strand<boost::asio::io_context::executor_type>(ioService->get_executor());
+//        instance._strand = new boost::asio::strand(*ioService);
     }
 
     return &instance;
@@ -314,7 +315,8 @@ void Log::write(std::unique_ptr<LogMessage>&& msg)
     if (_ioService)
     {
         auto logOperation = std::make_shared<LogOperation>(logger, std::move(msg));
-        _ioService->post(_strand->wrap([logOperation]() { logOperation->call(); }));
+        boost::asio::post(*_strand, [logOperation]() { logOperation->call(); });
+//        _ioService->post(_strand->wrap([logOperation]() { logOperation->call(); }));
     }
     else
         logger->write(msg.get());
