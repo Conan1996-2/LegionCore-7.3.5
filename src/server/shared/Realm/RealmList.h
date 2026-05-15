@@ -25,7 +25,10 @@
 #include <map>
 #include <vector>
 #include <unordered_set>
-#include <boost/asio.hpp>
+#include <boost/asio/io_context.hpp>
+#include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/steady_timer.hpp>
+#include <boost/asio/strand.hpp>
 
 struct RealmBuildInfo
 {
@@ -38,19 +41,6 @@ struct RealmBuildInfo
     std::array<uint8, 16> Win64AuthSeed;
     std::array<uint8, 16> Mac64AuthSeed;
 };
-
-namespace boost
-{
-    namespace asio
-    {
-        class io_service;
-    }
-
-    namespace system
-    {
-        class error_code;
-    }
-}
 
 namespace bgs
 {
@@ -86,7 +76,7 @@ public:
 
     ~RealmList();
 
-    void Initialize(boost::asio::io_service& ioService, uint32 updateInterval);
+    void Initialize(boost::asio::io_context& ioContext, uint32 updateInterval);
     void Close();
 
     RealmMap const& GetRealms() const { return _realms; }
@@ -113,7 +103,7 @@ private:
     RealmIPMap _realmIPs;
     std::unordered_set<std::string> _subRegions;
     uint32 _updateInterval;
-    std::unique_ptr<boost::asio::deadline_timer> _updateTimer;
+    std::unique_ptr<boost::asio::steady_timer> _updateTimer;
     std::unique_ptr<boost::asio::ip::tcp_resolver> _resolver;
     mutable std::recursive_mutex i_RealmList_lock;
 };

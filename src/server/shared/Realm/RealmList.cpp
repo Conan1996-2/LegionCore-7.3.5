@@ -26,7 +26,6 @@
 #include "Util.h"
 #include "game_utilities_service.pb.h"
 #include "RealmList.pb.h"
-#include <boost/asio/deadline_timer.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <zlib.h>
 #include "RealmList.h"
@@ -45,11 +44,11 @@ RealmList* RealmList::Instance()
 }
 
 // Load the realm list from the database
-void RealmList::Initialize(boost::asio::io_service& ioService, uint32 updateInterval)
+void RealmList::Initialize(boost::asio::io_context& ioContext, uint32 updateInterval)
 {
     _updateInterval = updateInterval;
-    _updateTimer = Trinity::make_unique<boost::asio::deadline_timer>(ioService);
-    _resolver = Trinity::make_unique<boost::asio::ip::tcp::resolver>(ioService);
+    _updateTimer = Trinity::make_unique<boost::asio::steady_timer>(ioContext);
+    _resolver = Trinity::make_unique<boost::asio::ip::tcp::resolver>(ioContext);
 
     LoadBuildInfo();
     // Get the content of the realmlist table in the database

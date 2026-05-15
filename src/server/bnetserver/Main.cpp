@@ -65,7 +65,7 @@ char serviceDescription[] = "LegionCore Battle.net emulator authentication servi
 */
 int m_ServiceStatus = -1;
 
-static boost::asio::deadline_timer* _serviceStatusWatchTimer;
+static boost::asio::steady_timer* _serviceStatusWatchTimer;
 void ServiceStatusWatcher(boost::system::error_code const& error);
 #endif
 
@@ -77,9 +77,9 @@ void BanExpiryHandler(boost::system::error_code const& error);
 variables_map GetConsoleArguments(int argc, char** argv, std::string& configFile, std::string& configService);
 
 boost::asio::io_service _ioService;
-static boost::asio::deadline_timer* _dbPingTimer;
+static boost::asio::steady_timer* _dbPingTimer;
 static uint32 _dbPingInterval;
-static boost::asio::deadline_timer* _banExpiryCheckTimer;
+static boost::asio::steady_timer* _banExpiryCheckTimer;
 static uint32 _banExpiryCheckInterval;
 void ShutdownThreadPool(std::vector<std::thread>& threadPool);
 
@@ -216,12 +216,12 @@ int main(int argc, char** argv)
 
     // Enabled a timed callback for handling the database keep alive ping
     _dbPingInterval = sConfigMgr->GetIntDefault("MaxPingTime", 30);
-    _dbPingTimer = new boost::asio::deadline_timer(_ioService);
+    _dbPingTimer = new boost::asio::steady_timer(_ioService);
     _dbPingTimer->expires_from_now(boost::posix_time::minutes(_dbPingInterval));
     _dbPingTimer->async_wait(KeepDatabaseAliveHandler);
 
     _banExpiryCheckInterval = sConfigMgr->GetIntDefault("BanExpiryCheckInterval", 60);
-    _banExpiryCheckTimer = new boost::asio::deadline_timer(_ioService);
+    _banExpiryCheckTimer = new boost::asio::steady_timer(_ioService);
     _banExpiryCheckTimer->expires_from_now(boost::posix_time::seconds(_banExpiryCheckInterval));
     _banExpiryCheckTimer->async_wait(BanExpiryHandler);
 
@@ -230,7 +230,7 @@ int main(int argc, char** argv)
 #if PLATFORM == TC_PLATFORM_WINDOWS
     if (m_ServiceStatus != -1)
     {
-        _serviceStatusWatchTimer = new boost::asio::deadline_timer(_ioService);
+        _serviceStatusWatchTimer = new boost::asio::steady_timer(_ioService);
         _serviceStatusWatchTimer->expires_from_now(boost::posix_time::seconds(1));
         _serviceStatusWatchTimer->async_wait(ServiceStatusWatcher);
     }
