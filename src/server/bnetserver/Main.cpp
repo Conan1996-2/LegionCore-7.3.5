@@ -44,6 +44,7 @@
 #include "ThreadPoolMgr.hpp"
 #include "Util.h"
 #include "Banner.h"
+#include <chrono>
 
 using boost::asio::ip::tcp;
 using namespace boost::program_options;
@@ -76,7 +77,7 @@ void KeepDatabaseAliveHandler(boost::system::error_code const& error);
 void BanExpiryHandler(boost::system::error_code const& error);
 variables_map GetConsoleArguments(int argc, char** argv, std::string& configFile, std::string& configService);
 
-boost::asio::io_service _ioService;
+boost::asio::io_context _ioService;
 static boost::asio::steady_timer* _dbPingTimer;
 static uint32 _dbPingInterval;
 static boost::asio::steady_timer* _banExpiryCheckTimer;
@@ -165,7 +166,10 @@ int main(int argc, char** argv)
         numThreads = 1;
 
     for (int i = 0; i < numThreads; ++i)
-        threadPool.emplace_back(boost::bind(&boost::asio::io_service::run, &_ioService));
+        threadPool.emplace_back([&_ioService]()
+        {
+            _ioService.run();
+        });
 
     // Initialize the database connection
     if (!StartDB())
@@ -217,12 +221,12 @@ int main(int argc, char** argv)
     // Enabled a timed callback for handling the database keep alive ping
     _dbPingInterval = sConfigMgr->GetIntDefault("MaxPingTime", 30);
     _dbPingTimer = new boost::asio::steady_timer(_ioService);
-    _dbPingTimer->expires_from_now(boost::posix_time::minutes(_dbPingInterval));
+    _dbPingTimer->expires_after(std::chrono::minutes(_dbPingInterval));
     _dbPingTimer->async_wait(KeepDatabaseAliveHandler);
 
     _banExpiryCheckInterval = sConfigMgr->GetIntDefault("BanExpiryCheckInterval", 60);
     _banExpiryCheckTimer = new boost::asio::steady_timer(_ioService);
-    _banExpiryCheckTimer->expires_from_now(boost::posix_time::seconds(_banExpiryCheckInterval));
+    _banExpiryCheckTimer->expires_after(std::chrono::seconds(_banExpiryCheckInterval));
     _banExpiryCheckTimer->async_wait(BanExpiryHandler);
 
     TC_LOG_INFO(LOG_FILTER_BATTLENET, "%s (bnetserver-daemon) ready...", GitRevision::GetFullVersion());
@@ -231,7 +235,7 @@ int main(int argc, char** argv)
     if (m_ServiceStatus != -1)
     {
         _serviceStatusWatchTimer = new boost::asio::steady_timer(_ioService);
-        _serviceStatusWatchTimer->expires_from_now(boost::posix_time::seconds(1));
+        _serviceStatusWatchTimer->expires_after(std::chrono::seconds(1));
         _serviceStatusWatchTimer->async_wait(ServiceStatusWatcher);
     }
 #endif
@@ -321,7 +325,7 @@ void KeepDatabaseAliveHandler(boost::system::error_code const& error)
         TC_LOG_DEBUG(LOG_FILTER_BATTLENET, "Ping MySQL to keep connection alive");
         LoginDatabase.KeepAlive();
 
-        _dbPingTimer->expires_from_now(boost::posix_time::minutes(_dbPingInterval));
+        _dbPingTimer->expires_after(std::chrono::minutes(_dbPingInterval));
         _dbPingTimer->async_wait(KeepDatabaseAliveHandler);
     }
 }
@@ -333,7 +337,7 @@ void BanExpiryHandler(boost::system::error_code const& error)
         LoginDatabase.Execute(LoginDatabase.GetPreparedStatement(LOGIN_DEL_EXPIRED_IP_BANS));
         LoginDatabase.Execute(LoginDatabase.GetPreparedStatement(LOGIN_UPD_EXPIRED_ACCOUNT_BANS));
 
-        _banExpiryCheckTimer->expires_from_now(boost::posix_time::seconds(_banExpiryCheckInterval));
+        _banExpiryCheckTimer->expires_after(std::chrono::seconds(_banExpiryCheckInterval));
         _banExpiryCheckTimer->async_wait(BanExpiryHandler);
     }
 }
@@ -350,7 +354,7 @@ void ServiceStatusWatcher(boost::system::error_code const& error)
         }
         else
         {
-            _serviceStatusWatchTimer->expires_from_now(boost::posix_time::seconds(1));
+            _serviceStatusWatchTimer->expires_after(std::chrono::seconds(1));
             _serviceStatusWatchTimer->async_wait(ServiceStatusWatcher);
         }
     }

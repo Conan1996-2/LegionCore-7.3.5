@@ -104,7 +104,7 @@ private:
     std::unordered_set<std::string> _subRegions;
     uint32 _updateInterval;
     std::unique_ptr<boost::asio::steady_timer> _updateTimer;
-    std::unique_ptr<boost::asio::ip::tcp_resolver> _resolver;
+    std::unique_ptr<boost::asio::ip::tcp::resolver> _resolver;
     mutable std::recursive_mutex i_RealmList_lock;
 };
 

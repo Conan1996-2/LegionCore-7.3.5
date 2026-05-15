@@ -26,10 +26,13 @@
 #include "Util.h"
 #include "game_utilities_service.pb.h"
 #include "RealmList.pb.h"
-#include <boost/asio/ip/tcp.hpp>
 #include <zlib.h>
 #include "RealmList.h"
 #include "Config.h"
+#include <boost/asio/io_context.hpp>
+#include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/steady_timer.hpp>
+#include <chrono>
 
 RealmList::RealmList() : _updateInterval(0)
 {
@@ -150,40 +153,48 @@ void RealmList::UpdateRealms(boost::system::error_code const& error)
                 Field* fields = result->Fetch();
                 uint32 realmId = fields[0].GetUInt32();
                 std::string name = fields[1].GetString();
-                boost::asio::ip::tcp::resolver::query externalAddressQuery(boost::asio::ip::tcp::v4(), fields[2].GetString(), "",
-                    boost::asio::ip::resolver_query_base::all_matching);
-
                 boost::system::error_code ec;
-                boost::asio::ip::tcp::resolver::iterator endPoint = _resolver->resolve(externalAddressQuery, ec);
-                if (endPoint == end || ec)
+                boost::asio::ip::tcp::resolver::results_type results =
+                    _resolver->resolve(
+                        fields[2].GetString(),
+                        "",
+                        ec);
+                auto it = results.begin();
+                if (ec || it == results.end())                
                 {
                     TC_LOG_ERROR(LOG_FILTER_REALMLIST, "Could not resolve address %s for realm \"%s\" id %u", fields[2].GetString().c_str(), name.c_str(), realmId);
                     continue;
                 }
+                boost::asio::ip::address externalAddress = it->endpoint().address();                
 
-                boost::asio::ip::address externalAddress = endPoint->endpoint().address();
-
-                boost::asio::ip::tcp::resolver::query localAddressQuery(boost::asio::ip::tcp::v4(), fields[3].GetString(), "",
-                    boost::asio::ip::resolver_query_base::all_matching);
-                endPoint = _resolver->resolve(localAddressQuery, ec);
-                if (endPoint == end || ec)
+                results =
+                    _resolver->resolve(
+                        fields[3].GetString(),
+                        "",
+                        ec);
+                it = results.begin();
+                if (ec || it == results.end())                
                 {
                     TC_LOG_ERROR(LOG_FILTER_REALMLIST, "Could not resolve localAddress %s for realm \"%s\" id %u", fields[3].GetString().c_str(), name.c_str(), realmId);
                     continue;
                 }
 
-                boost::asio::ip::address localAddress = endPoint->endpoint().address();
+                boost::asio::ip::address localAddress = it->endpoint().address();
 
-                boost::asio::ip::tcp::resolver::query localSubmaskQuery(boost::asio::ip::tcp::v4(), fields[4].GetString(), "",
-                    boost::asio::ip::resolver_query_base::all_matching);
-                endPoint = _resolver->resolve(localSubmaskQuery, ec);
-                if (endPoint == end || ec)
+                results =
+                    _resolver->resolve(
+                        fields[4].GetString(),
+                        "",
+                        ec);
+
+                it = results.begin();
+                if (ec || it == results.end())                
                 {
                     TC_LOG_ERROR(LOG_FILTER_REALMLIST, "Could not resolve localSubnetMask %s for realm \"%s\" id %u", fields[4].GetString().c_str(), name.c_str(), realmId);
                     continue;
                 }
 
-                boost::asio::ip::address localSubmask = endPoint->endpoint().address();
+                boost::asio::ip::address localSubmask = it->endpoint().address();
 
                 uint16 port = fields[5].GetUInt16();
                 uint8 icon = fields[6].GetUInt8();
@@ -229,7 +240,7 @@ void RealmList::UpdateRealms(boost::system::error_code const& error)
 
     if (_updateInterval)
     {
-        _updateTimer->expires_from_now(boost::posix_time::seconds(_updateInterval));
+        _updateTimer->expires_after(std::chrono::seconds(_updateInterval));
         _updateTimer->async_wait(std::bind(&RealmList::UpdateRealms, this, std::placeholders::_1));
     }
 }
