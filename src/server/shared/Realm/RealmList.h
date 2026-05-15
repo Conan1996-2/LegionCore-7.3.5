@@ -43,7 +43,6 @@ namespace boost
 {
     namespace asio
     {
-        class io_service;
     }
 
     namespace system
@@ -86,7 +85,7 @@ public:
 
     ~RealmList();
 
-    void Initialize(boost::asio::io_service& ioService, uint32 updateInterval);
+    void Initialize(boost::asio::io_context& ioContext, uint32 updateInterval);
     void Close();
 
     RealmMap const& GetRealms() const { return _realms; }
