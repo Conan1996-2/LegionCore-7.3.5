@@ -42,18 +42,6 @@ struct RealmBuildInfo
     std::array<uint8, 16> Mac64AuthSeed;
 };
 
-namespace boost
-{
-    namespace asio
-    {
-    }
-
-    namespace system
-    {
-        class error_code;
-    }
-}
-
 namespace bgs
 {
     namespace protocol
