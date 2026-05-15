@@ -166,7 +166,7 @@ int main(int argc, char** argv)
         numThreads = 1;
 
     for (int i = 0; i < numThreads; ++i)
-        threadPool.emplace_back([&_ioService]()
+        threadPool.emplace_back([]()
         {
             _ioService.run();
         });

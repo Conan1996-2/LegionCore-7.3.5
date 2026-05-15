@@ -154,7 +154,7 @@ extern int main(int argc, char **argv)
     }
     );
 
-    OpenSSLCrypto::threadsSetup();
+//    OpenSSLCrypto::threadsSetup();
     cds::Initialize();
     cds::gc::HP hpGC;
     cds::threading::Manager::attachThread();
@@ -404,7 +404,7 @@ extern int main(int argc, char **argv)
         delete cliThread;
     }
 
-    OpenSSLCrypto::threadsCleanup();
+//    OpenSSLCrypto::threadsCleanup();
     google::protobuf::ShutdownProtobufLibrary();
 
     // 0 - normal shutdown
